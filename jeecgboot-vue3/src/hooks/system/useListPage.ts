@@ -202,7 +202,7 @@ export function useListTable(tableProps: TableProps): [
     sm: 12, // ≥576px
     md: 12, // ≥768px
     lg: 8, // ≥992px
-    xl: 8, // ≥1200px
+    xl: 6, // ≥1200px
     xxl: 6, // ≥1600px
   };
   const defaultTableProps: TableProps = {

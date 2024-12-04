@@ -27,6 +27,7 @@
     v-model:value="selectedValue"
     v-bind="attrs"
     showSearch
+    allowClear
     :getPopupContainer="getParentContainer"
     :placeholder="placeholder"
     :filterOption="filterOption"
