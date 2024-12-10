@@ -49,11 +49,11 @@
     },
     drawer: {
       type: String,
-      default: 'fwk/components/CommonDrawer.vue'
+      default: 'fwk/components/CommonNativeDrawer.vue'
     },
     modal: {
       type: String,
-      default: 'fwk/components/CommonModal.vue'
+      default: 'fwk/components/CommonNativeModal.vue'
     },
     auth_str: {
       type: String
@@ -81,7 +81,7 @@
   const data_path = '/@/views/sofree/' + props.data_path;
   const api_path = '/@/views/sofree/' + props.api_path;
 
-  const { columns, searchFormSchema, superQuerySchema } = await import(data_path);
+  const { columns, defSort, searchFormSchema, superQuerySchema } = await import(data_path);
   const { list, deleteOne, batchDelete, getImportUrl, getExportUrl, getChildList,getChildListBatch } = await import(api_path);
 
   import { ref, reactive, unref, defineAsyncComponent } from 'vue';
@@ -108,6 +108,8 @@
       api: list,
       columns,
       //canResize:false,
+      defSort : defSort,
+      striped: true,
       useSearchForm: true,
       formConfig: {
         schemas: searchFormSchema,

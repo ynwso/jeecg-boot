@@ -113,6 +113,10 @@ export const columns: BasicColumn[] = [
   
 ];
 
+export const defSort: Recordable = {
+  
+}
+
 // 高级查询数据
 export const superQuerySchema = {
   schoolCode: {title: '学校编码',order: 0,view: 'text', type: 'string',},

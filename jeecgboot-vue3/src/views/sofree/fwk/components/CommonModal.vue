@@ -1,114 +1,81 @@
 <template>
-  <j-modal :title="title" :width="width" :maxHeight="400" :visible="visible" @ok="handleOk" :okButtonProps="{ class: { 'jee-hidden': disableSubmit } }" @cancel="handleCancel" cancelText="关闭">
-    <FromComponent ref="registerForm" @ok="submitCallback" :formDisabled="disableSubmit" :formBpm="false" />
-  </j-modal>
+  <BasicModal v-bind="$attrs" @register="registerModal" destroyOnClose :title="title" :width="800" :maxHeight="400" @ok="handleSubmit">
+      <BasicForm @register="registerForm" />
+  </BasicModal>
 </template>
 
 <script lang="ts" setup>
-  const props = defineProps(['form_path']);
-  import { ref, nextTick, defineExpose, defineAsyncComponent } from 'vue';
-  import JModal from '/@/components/Modal/src/JModal/JModal.vue';
+    const props = defineProps(['data_path','api_path']);
+    import {ref, computed, unref} from 'vue';
+    import {BasicModal, useModalInner} from '/@/components/Modal';
+    import {BasicForm, useForm} from '/@/components/Form/index';
 
-  const FromComponent = defineAsyncComponent(() =>
-    import(props.form_path)
-  );
-  
-  const title = ref<string>('');
-  const width = ref<number>(800);
-  const visible = ref<boolean>(false);
-  const disableSubmit = ref<boolean>(false);
-  const registerForm = ref();
-  const emit = defineEmits(['register', 'success']);
+    const data_path = props.data_path;
+    const api_path = props.api_path;
 
-  //检查模板是否加载完成(也不能非分百保证)
-  function templateLoaded<T>(templateRef: T): Promise<T> {
-    return new Promise((resolve, reject) => {
-      const checkInsertRefLoaded = setInterval(() => {
-        if (templateRef) {
-          clearInterval(checkInsertRefLoaded);
-          resolve(templateRef);
+    const { formSchema } = await import(data_path);
+    const { saveOrUpdate } = await import(api_path);
+    // Emits声明
+    const emit = defineEmits(['register','success']);
+    const isUpdate = ref(true);
+    const isDetail = ref(false);
+    //表单配置
+    const [registerForm, { setProps,resetFields, setFieldsValue, validate, scrollToField }] = useForm({
+        labelWidth: 150,
+        schemas: formSchema,
+        showActionButtonGroup: false,
+        baseColProps: {span: 24}
+    });
+    //表单赋值
+    const [registerModal, {setModalProps, closeModal}] = useModalInner(async (data) => {
+        //重置表单
+        await resetFields();
+        setModalProps({confirmLoading: false,showCancelBtn:!!data?.showFooter,showOkBtn:!!data?.showFooter});
+        isUpdate.value = !!data?.isUpdate;
+        isDetail.value = !!data?.showFooter;
+        if (unref(isUpdate)) {
+            //表单赋值
+            await setFieldsValue({
+                ...data.record,
+            });
         }
-      }, 100);
+        // 隐藏底部时禁用整个表单
+       setProps({ disabled: !data?.showFooter })
     });
-  }
-
-  /**
-   * 新增, obj仅适用于树菜单
-   * @param obj
-   */
-  function add(obj={}) {
-    title.value = '新增';
-    visible.value = true;
-    nextTick(async () => {
-      while(registerForm.value == null){
-        await templateLoaded(registerForm);
-      }
-      registerForm.value.add(obj);
-    });
-  }
-  
-  /**
-   * 编辑
-   * @param record
-   */
-  function edit(record) {
-    title.value = disableSubmit.value ? '详情' : '编辑';
-    visible.value = true;
-    nextTick(async () => {
-      while(registerForm.value == null){
-        await templateLoaded(registerForm);
-      }
-      registerForm.value.edit(record);
-    });
-  }
-  
-  /**
-   * 确定按钮点击事件
-   */
-  function handleOk() {
-    registerForm.value.submitForm();
-  }
-
-  /**
-   * form保存回调事件, 兼容树菜单（以下参数 仅适用于树菜单）
-   * @param isUpdate 是否为更新
-   * @param values 表单值
-   * @param expandedArr 展开的树菜单节点数组
-   * @param changeParent 是否更改了父级节点
-   */
-  function submitCallback(obj) {
-    handleCancel();
-    if(obj != null){//{ isUpdate, values, expandedArr, changeParent }
-      emit('success', {
-        isUpdate: obj.isUpdate,
-        values: obj.values,
-        expandedArr: obj.expandedArr,
-        // 是否更改了父级节点
-        changeParent: obj.changeParent,
-      });
-    } else {
-      emit('success');
+    //设置标题
+    const title = computed(() => (!unref(isUpdate) ? '新增' : !unref(isDetail) ? '详情' : '编辑'));
+    //表单提交事件
+    async function handleSubmit(v) {
+        try {
+            let values = await validate();
+            setModalProps({confirmLoading: true});
+            //提交表单
+            await saveOrUpdate(values, isUpdate.value);
+            //关闭弹窗
+            closeModal();
+            //刷新列表
+            emit('success');
+        } catch ({ errorFields }) {
+           if (errorFields) {
+             const firstField = errorFields[0];
+             if (firstField) {
+               scrollToField(firstField.name, { behavior: 'smooth', block: 'center' });
+             }
+           }
+           return Promise.reject(errorFields);
+        } finally {
+            setModalProps({confirmLoading: false});
+        }
     }
-  }
-
-  /**
-   * 取消按钮回调事件
-   */
-  function handleCancel() {
-    visible.value = false;
-  }
-
-  defineExpose({
-    add,
-    edit,
-    disableSubmit,
-  });
 </script>
 
-<style lang="less">
-  /**隐藏样式-modal确定按钮 */
-  .jee-hidden {
-    display: none !important;
+<style lang="less" scoped>
+	/** 时间和数字输入框样式 */
+  :deep(.ant-input-number) {
+    width: 100%;
+  }
+
+  :deep(.ant-calendar-picker) {
+    width: 100%;
   }
 </style>
-<style lang="less" scoped></style>

@@ -1,5 +1,24 @@
 <template>
   <div class="p-2">
+    <div class="jeecg-basic-table-form-container" v-if="!useSearchForm">
+      <a-form ref="formRef" @keyup.enter.native="searchQuery" :model="queryParam" :label-col="labelCol" :wrapper-col="wrapperCol">
+        <a-row :gutter="24">
+          <slot name="tableSearchColSlot" :queryParam="queryParam" :toggleSearchStatus="toggleSearchStatus"></slot>
+          <a-col :xl="6" :lg="7" :md="8" :sm="24">
+            <span style="float: left; overflow: hidden" class="table-page-search-submitButtons">
+              <a-col :lg="6">
+                <a-button type="primary" preIcon="ant-design:search-outlined" @click="searchQuery">查询</a-button>
+                <a-button type="primary" preIcon="ant-design:reload-outlined" @click="searchReset" style="margin-left: 8px">重置</a-button>
+                <a @click="toggleSearchStatus = !toggleSearchStatus" style="margin-left: 8px" v-if="searchColCount > 3">
+                  {{ toggleSearchStatus ? '收起' : '展开' }}
+                  <Icon :icon="toggleSearchStatus ? 'ant-design:up-outlined' : 'ant-design:down-outlined'" />
+                </a>
+              </a-col>
+            </span>
+          </a-col>
+        </a-row>
+      </a-form>
+    </div>
     <!--引用表格-->
     <BasicTable @register="registerTable" :rowSelection="rowSelection">
       <!--插槽:table标题-->
@@ -31,11 +50,11 @@
       </template>
     </BasicTable>
     <!-- 表单区域 -->
-    <template v-if="useModal">
-      <CommonModal ref="registerModal" @success="handleSuccess" v-bind:form_path="form_path" />
+    <template v-if="izUseModal">
+      <CommonModal @register="registerModal" @success="handleSuccess" v-bind:form_path="form_path" v-bind:data_path="data_path" v-bind:api_path="api_path" />
     </template>
-    <template v-if="!useModal">
-      <CommonModal @register="registerDrawer" @success="handleSuccess" v-bind:form_path="form_path" />
+    <template v-if="!izUseModal">
+      <CommonModal @register="registerDrawer" @success="handleSuccess" v-bind:form_path="form_path" v-bind:data_path="data_path" v-bind:api_path="api_path" />
     </template>
   </div>
 </template>
@@ -45,6 +64,10 @@
     title: {
       type: String,
       default: ''
+    },
+    isNative : {//是否使用原生表单，默认false
+      type: Boolean,
+      default: false
     },
     drawer: {
       type: String,
@@ -65,7 +88,15 @@
     },
     form_path: {
       type: String
-    }
+    },
+    useSearchForm:{
+      type: Boolean,
+      default: true
+    },
+    searchColCount:{
+      type: Number,
+      default: 0
+    },
   });
   const auth_add = props.auth_str + ':add';
   const auth_delete = props.auth_str + ':delete';
@@ -73,15 +104,19 @@
   const auth_edit = props.auth_str + ':edit';
   const auth_exportXls = props.auth_str + ':exportXls';
   const auth_importExcel = props.auth_str + ':importExcel';
-
-  const useModal = ref(false);
+  
+  const izUseModal = ref(false);
   const form_path = '/@/views/sofree/' + props.form_path;
-  const modal_path = '/@/views/sofree/' +  (useModal.value ? props.modal:props.drawer);
+  let modal_path = (izUseModal.value ? props.modal:props.drawer);
+  if(props.isNative){
+    modal_path = izUseModal.value ? 'fwk/components/CommonNativeModal.vue' : 'fwk/components/CommonNativeDrawer.vue';
+  }
+  modal_path = '/@/views/sofree/' +  modal_path;
   const data_path = '/@/views/sofree/' + props.data_path;
   const api_path = '/@/views/sofree/' + props.api_path;
 
   
-  const { columns, searchFormSchema, superQuerySchema } = await import(data_path);
+  const { columns, defSort, searchFormSchema, superQuerySchema } = await import(data_path);
   const { list, deleteOne, batchDelete, getImportUrl, getExportUrl } = await import(api_path);
 
   import { ref, reactive, defineAsyncComponent  } from 'vue';
@@ -90,17 +125,19 @@
   
   //import { downloadFile } from '/@/utils/common/renderUtils';
   import { useDrawer } from '/@/components/Drawer';
-  import { useUserStore } from '/@/store/modules/user';
+  import { useModal } from '/@/components/Modal';
+  //import { useUserStore } from '/@/store/modules/user';
 
   const formRef = ref();
   const queryParam = reactive<any>({});
-  //const toggleSearchStatus = ref<boolean>(false);
-  const registerModal = ref();
-  const userStore = useUserStore();
+  const toggleSearchStatus = ref<boolean>(false);
+  //const userStore = useUserStore();
 
   const CommonModal = defineAsyncComponent(() => import(modal_path));
-
+  //注册drawer
   const [registerDrawer, { openDrawer }] = useDrawer();
+  //注册model
+  const [registerModal, { openModal }] = useModal();
   //注册table数据
   const { prefixCls, tableContext, onExportXls, onImportXls } = useListPage({
     tableProps: {
@@ -108,12 +145,16 @@
       api: list,
       columns,
       //canResize:true,
-      //useSearchForm: true,
+      useSearchForm: props.useSearchForm,
+      striped: true,
       size: 'small',
+       // 默认的排序参数Recordable
+      defSort : defSort,
       formConfig: {
         schemas: searchFormSchema,
       },
       actionColumn: {
+        title: '操作',
         width: 120,
         fixed: 'right',
       },
@@ -160,14 +201,16 @@
    * 新增事件
    */
   function handleAdd() { 
-    if(!useModal.value){
+    if(!izUseModal.value){
       openDrawer(true, {
         isUpdate: false,
         showFooter: true
       });
     } else {
-      registerModal.value.disableSubmit = false;
-      registerModal.value.add();
+      openModal(true, {
+        isUpdate: false,
+        showFooter: true,
+      });
     }
   }
   
@@ -175,15 +218,18 @@
    * 编辑事件
    */
   function handleEdit(record: Recordable) {
-    if(!useModal.value){
+    if(!izUseModal.value){
       openDrawer(true, {
         record,
         isUpdate: true,
         showFooter: true
       });
     } else {
-      registerModal.value.disableSubmit = false;
-      registerModal.value.edit(record);
+      openModal(true, {
+        record,
+        isUpdate: true,
+        showFooter: true,
+      });
     }
   }
    
@@ -191,15 +237,18 @@
    * 详情
    */
   function handleDetail(record: Recordable) {
-    if(!useModal.value){
+    if(!izUseModal.value){
       openDrawer(true, {
         record,
         isUpdate: true,
         showFooter: false
       });
     } else {
-      registerModal.value.disableSubmit = true;
-      registerModal.value.edit(record);
+      openModal(true, {
+        record,
+        isUpdate: true,
+        showFooter: false,
+      });
     }
   }
    

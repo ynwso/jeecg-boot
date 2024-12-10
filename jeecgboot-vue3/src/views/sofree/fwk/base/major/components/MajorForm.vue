@@ -232,6 +232,7 @@
 
   function changeGbzyType(value) {
       gbzyDict.value = value;
+      formData.gbzyId = '';
   }
 
   defineExpose({

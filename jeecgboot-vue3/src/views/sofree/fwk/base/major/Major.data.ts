@@ -8,12 +8,18 @@ export const columns: BasicColumn[] = [
   {
     title: '专业代码',
     align: "center",
-    dataIndex: 'majorCode'
+    dataIndex: 'majorCode',
+    sorter: true,
+    //defaultSortOrder: 'ascend',
+    //resizable: true, //配置列可伸缩
+    //sortOrder : 'descend',
+    //sortDirections : ['ascend', 'descend'],
   },
   {
     title: '专业名称',
     align: "center",
-    dataIndex: 'majorName'
+    dataIndex: 'majorName',
+    sorter: true,
   },
   {
     title: '英文名称',
@@ -23,7 +29,9 @@ export const columns: BasicColumn[] = [
   {
     title: '所属院/系/部',
     align: "center",
-    dataIndex: 'departId_dictText'
+    dataIndex: 'departId_dictText',
+    sorter: true,
+    //defaultSortOrder: 'ascend',
   },
   {
     title: '学制',
@@ -73,10 +81,15 @@ export const columns: BasicColumn[] = [
   {
     title: '状态',
     align: "center",
-    dataIndex: 'zt_dictText'
+    dataIndex: 'zt_dictText',
+    sorter: true,
   },
 ];
 
+export const defSort: Recordable = {
+  column: 'majorCode',
+  order: 'asc'
+}
 
 export const searchFormSchema: FormSchema[] = [
   {
@@ -86,7 +99,7 @@ export const searchFormSchema: FormSchema[] = [
     componentProps: {
       dictCode: "t_base_depart,depart_name,id,bmjb=1 and bmlb_id=1",
       placeholder: '请选择所属院/系/部',
-      stringToNumber: true,
+      //stringToNumber: true,
     },
     //colProps: { span: 6 },
   },

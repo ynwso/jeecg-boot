@@ -8,12 +8,14 @@ export const columns: BasicColumn[] = [
   {
     title: '部门代码',
     align: 'center',
-    dataIndex: 'departCode'
+    dataIndex: 'departCode',
+    sorter: true,
   },
   {
     title: '部门名称',
     align: 'left',
-    dataIndex: 'departName'
+    dataIndex: 'departName',
+    sorter: true,
   },
   {
     title: '部门简称',
@@ -28,12 +30,14 @@ export const columns: BasicColumn[] = [
   {
     title: '状态',
     align: 'center',
-    dataIndex: 'zt_dictText'
+    dataIndex: 'zt_dictText',
+    sorter: true,
   },
   {
     title: '排序',
     align: 'center',
-    dataIndex: 'px'
+    dataIndex: 'px',
+    sorter: true,
   },
   {
     title: '部门级别',
@@ -43,7 +47,8 @@ export const columns: BasicColumn[] = [
   {
     title: '部门类别',
     align: 'center',
-    dataIndex: 'bmlbId_dictText'
+    dataIndex: 'bmlbId_dictText',
+    sorter: true,
   },
   {
     title: '联系人',
@@ -67,6 +72,11 @@ export const columns: BasicColumn[] = [
     customRender: render.renderImage,
   },
 ];
+
+export const defSort: Recordable = {
+  column: 'departCode',
+  order: 'asc'
+}
 
 export const searchFormSchema: FormSchema[] = [
   {
